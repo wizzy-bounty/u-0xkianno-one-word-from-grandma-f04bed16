@@ -1,29 +1,53 @@
-#!/usr/bin/env python3
 """One Word From Grandma — entry program.
 
-Writes exactly one word to /output/entry.txt: the single word a
-grandma would text about AI.
+Writes exactly one word to $MAKEFUN_OUTPUT_DIR/entry.txt
+(fallback /output/entry.txt). Python stdlib only, deterministic,
+no network.
 """
 
 import os
 
-WORD = "Computy"
-OUTPUT_PATH = "/output/entry.txt"
+# The word a grandma would text about AI: a little box that talks back.
+# Warm, a little confused, funny in one word, tied to the machine.
+WORD = "TALKINGBOX"
+
+OUTPUT_FILENAME = "entry.txt"
+FALLBACK_DIR = "/output"
+
+
+def validate(word: str) -> str:
+    """Check the entry is exactly one word, 1-30 characters, no padding."""
+    if not word or word != word.strip():
+        raise ValueError("word must be non-empty and not padded with whitespace")
+    if len(word.split()) != 1:
+        raise ValueError("word must be exactly one word")
+    if not 1 <= len(word) <= 30:
+        raise ValueError("word must be 1-30 characters long")
+    return word
+
+
+def output_dir() -> str:
+    return os.environ.get("MAKEFUN_OUTPUT_DIR") or FALLBACK_DIR
+
+
+def entry_path(directory: str) -> str:
+    """Path of the entry file inside the resolved output directory."""
+    return os.path.join(directory, OUTPUT_FILENAME)
+
+
+def write_entry(word: str) -> str:
+    word = validate(word)
+    directory = output_dir()
+    os.makedirs(directory, exist_ok=True)
+    path = entry_path(directory)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(word)
+    return path
 
 
 def main() -> None:
-    word = WORD
-    # Internal validation mirroring the competition gate:
-    # UTF-8 text, 1-30 characters, not only whitespace, exactly one word.
-    assert isinstance(word, str)
-    encoded = word.encode("utf-8")
-    assert 1 <= len(word) <= 30, "word must be 1-30 characters"
-    assert word.strip(), "word must not be only whitespace"
-    assert not any(ch.isspace() for ch in word), "word must be a single word"
-    assert len(word.split()) == 1
-    os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
-    with open(OUTPUT_PATH, "wb") as f:
-        f.write(encoded)
+    path = write_entry(WORD)
+    print(f"wrote {path}: {WORD}")
 
 
 if __name__ == "__main__":
